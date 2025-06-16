@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Desigualdades Lineales y Cuadráticas</title>
+  <style>
+    body {
+      background-color: #eef2f3;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .contenedor {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 700px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    #resultado {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    canvas {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Resolver y Graficar Desigualdades</h2>
+    <p>Ejemplos válidos:<br>
+       <code>2x + 3 < 7</code> (lineal)<br>
+       <code>x^2 - 5x + 6 >= 0</code> (cuadrática)
+    </p>
+    <input type="text" id="desigualdad" placeholder="Escribe la desigualdad aquí">
+    <button onclick="resolver()">Resolver</button>
+    <div id="resultado"></div>
+    <canvas id="grafico" width="600" height="400"></canvas>
+  </div>
+
+  <!-- Bibliotecas necesarias -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/nerdamer.core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/Algebra.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/Solve.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    function resolver() {
+      const entrada = document.getElementById("desigualdad").value.replace(/\s+/g, '');
+      const resultado = document.getElementById("resultado");
+      const ctx = document.getElementById("grafico").getContext("2d");
+
+      // Buscar operador
+      let operador = null;
+      if (entrada.includes(">=")) operador = ">=";
+      else if (entrada.includes("<=")) operador = "<=";
+      else if (entrada.includes(">")) operador = ">";
+      else if (entrada.includes("<")) operador = "<";
+
+      if (!operador) {
+        resultado.innerHTML = "Por favor, usa una desigualdad válida como <, >, <=, >=";
+        return;
+      }
+
+      // Separar lados y simplificar
+      const [izquierda, derecha] = entrada.split(operador);
+      const expr = `(${izquierda}) - (${derecha})`;
+      const simplificada = nerdamer(expr).expand().toString();
+
+      // Evaluar si es cuadrática
+      const esCuadratica = simplificada.includes("x^2") || simplificada.includes("x**2");
+
+      // Resolver raíces
+      let raices = [];
+      try {
+        raices = nerdamer.solve(simplificada, "x").evaluate().text().split(',');
+        raices = raices.map(r => parseFloat(nerdamer(r).evaluate().text()));
+      } catch (e) {
+        resultado.innerHTML = "No se pudo resolver la desigualdad.";
+        return;
+      }
+
+      // Generar puntos para graficar
+      let x_vals = [], y_vals = [];
+      for (let x = -10; x <= 10; x += 0.2) {
+        const y = nerdamer(simplificada, {x}).evaluate().text();
+        x_vals.push(x);
+        y_vals.push(parseFloat(y));
+      }
+
+      // Dibujar gráfica
+      if (window.miGrafico) window.miGrafico.destroy();
+      window.miGrafico = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: x_vals,
+          datasets: [{
+            label: "f(x) = " + simplificada,
+            data: y_vals,
+            borderColor: "#3e95cd",
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              title: { display: true, text: 'x' }
+            },
+            y: {
+              title: { display: true, text: 'f(x)' },
+              beginAtZero: false
+            }
+          }
+        }
+      });
+
+      // Determinar intervalo solución
+      let intervalo = "";
+      if (esCuadratica && raices.length === 2) {
+        const [a, b] = raices.sort((a, b) => a - b);
+        if (operador === ">=") intervalo = `x ∈ (-∞, ${a}] ∪ [${b}, ∞)`;
+        else if (operador === ">") intervalo = `x ∈ (-∞, ${a}) ∪ (${b}, ∞)`;
+        else if (operador === "<=") intervalo = `x ∈ [${a}, ${b}]`;
+        else if (operador === "<") intervalo = `x ∈ (${a}, ${b})`;
+      } else if (!esCuadratica && raices.length === 1) {
+        const r = raices[0];
+        if (operador === "<") intervalo = `x < ${r}`;
+        if (operador === "<=") intervalo = `x ≤ ${r}`;
+        if (operador === ">") intervalo = `x > ${r}`;
+        if (operador === ">=") intervalo = `x ≥ ${r}`;
+      }
+
+      // Mostrar resultado
+      resultado.innerHTML = `
+        <p><strong>Expresión:</strong> ${expr}</p>
+        <p><strong>Forma simplificada:</strong> ${simplificada}</p>
+        <p><strong>Raíces encontradas:</strong> ${raices.join(", ")}</p>
+        <p><strong>Intervalo que satisface la desigualdad:</strong> ${intervalo}</p>
+      `;
+    }
+  </script>
+</body>
+</html>
