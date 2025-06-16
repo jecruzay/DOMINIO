@@ -2,121 +2,100 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Resolver Desigualdades</title>
+  <title>Desigualdades Lineales y Cuadráticas</title>
   <style>
     body {
+      background-color: #f4f4f4;
       font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      padding: 30px;
+      padding: 20px;
     }
-    .container {
+    .contenedor {
       background: white;
       padding: 20px;
-      border-radius: 12px;
+      border-radius: 10px;
       max-width: 600px;
       margin: auto;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
     input, button {
+      padding: 10px;
       font-size: 16px;
-      padding: 8px;
       width: 100%;
-      margin: 10px 0;
+      margin-top: 10px;
     }
     #resultado {
-      font-weight: bold;
       margin-top: 20px;
+      font-size: 18px;
+      color: #333;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Resolver Desigualdades Lineales y Cuadráticas</h2>
-    <p>Ejemplos: <br><code>2x + 3 < 5</code> (lineal), <code>x^2 - 4x + 3 >= 0</code> (cuadrática)</p>
-    <input type="text" id="entrada" placeholder="Escribe la desigualdad aquí">
-    <button onclick="resolverDesigualdad()">Resolver</button>
+  <div class="contenedor">
+    <h2>Resolver Desigualdades</h2>
+    <p>Ejemplos válidos:<br>
+       <code>2x + 3 < 7</code> (lineal)<br>
+       <code>x^2 - 5x + 6 >= 0</code> (cuadrática)
+    </p>
+    <input type="text" id="desigualdad" placeholder="Escribe la desigualdad aquí">
+    <button onclick="resolver()">Resolver</button>
     <div id="resultado"></div>
   </div>
 
-  <script>
-    function resolverDesigualdad() {
-      const entrada = document.getElementById("entrada").value.replace(/\s+/g, '');
-      const resultado = document.getElementById("resultado");
-
-      if (!entrada.includes("<") && !entrada.includes(">")) {
-        resultado.innerText = "Por favor ingresa una desigualdad válida con <, >, <= o >=.";
-        return;
-      }
-
-      // Convertir desigualdad a expresión evaluable
-      let operador = entrada.includes(">=") ? ">=" :
-                     entrada.includes("<=") ? "<=" :
-                     entrada.includes(">") ? ">" :
-                     entrada.includes("<") ? "<" : null;
-
-      const [izq, der] = entrada.split(operador).map(s => s.replace(/\^/g, "**"));
-
-      // Si contiene x^2 es cuadrática
-      if (izq.includes("x**2") || der.includes("x**2")) {
-        resolverCuadratica(izq, operador, der);
-      } else {
-        resolverLineal(izq, operador, der);
-      }
-    }
-
-    function resolverLineal(izq, operador, der) {
-      const resultado = document.getElementById("resultado");
-      try {
-        // Mover todo a un lado: izq - der
-        const expr = `(${izq}) - (${der})`;
-        const paso = nerdamer(expr).expand().toString();
-        const solucion = nerdamer.solve(paso, "x").toString();
-
-        resultado.innerHTML = `
-          <p><strong>Paso 1:</strong> Mover todo a un lado: ${expr}</p>
-          <p><strong>Paso 2:</strong> Simplificar: ${paso}</p>
-          <p><strong>Solución:</strong> x ${operador} ${solucion}</p>
-        `;
-      } catch (e) {
-        resultado.innerText = "Error al resolver la desigualdad lineal.";
-      }
-    }
-
-    function resolverCuadratica(izq, operador, der) {
-      const resultado = document.getElementById("resultado");
-      try {
-        const expr = `(${izq}) - (${der})`;
-        const simplificada = nerdamer(expr).expand().toString();
-        const factorizada = nerdamer(simplificada).factor().toString();
-        const raices = nerdamer.solve(simplificada, "x").toString().split(',');
-
-        let intervalo = operador.includes('>') ? 
-          `x ∈ (-∞, ${raices[0]}) ∪ (${raices[1]}, ∞)` : 
-          `x ∈ [${raices[0]}, ${raices[1]}]`;
-
-        if (operador === '<' || operador === '<=') {
-          intervalo = operador.includes('=') ? 
-            `x ∈ [${raices[0]}, ${raices[1]}]` : 
-            `x ∈ (${raices[0]}, ${raices[1]})`;
-        }
-
-        resultado.innerHTML = `
-          <p><strong>Paso 1:</strong> Mover todo a un lado: ${expr}</p>
-          <p><strong>Paso 2:</strong> Simplificar: ${simplificada}</p>
-          <p><strong>Paso 3:</strong> Factorizar: ${factorizada}</p>
-          <p><strong>Raíces:</strong> x = ${raices.join(" y ")}</p>
-          <p><strong>Solución:</strong> ${intervalo}</p>
-        `;
-      } catch (e) {
-        resultado.innerText = "Error al resolver la desigualdad cuadrática.";
-      }
-    }
-  </script>
-
-  <!-- Librería Nerdamer para álgebra simbólica -->
+  <!-- Librería Nerdamer para álgebra -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/nerdamer.core.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/Algebra.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/Solve.js"></script>
+
+  <script>
+    function resolver() {
+      const entrada = document.getElementById("desigualdad").value.replace(/\s+/g, '');
+      const resultado = document.getElementById("resultado");
+      let operador = null;
+
+      if (entrada.includes(">=")) operador = ">=";
+      else if (entrada.includes("<=")) operador = "<=";
+      else if (entrada.includes(">")) operador = ">";
+      else if (entrada.includes("<")) operador = "<";
+
+      if (!operador) {
+        resultado.innerHTML = "Por favor, usa una desigualdad válida como <, >, <=, >=";
+        return;
+      }
+
+      const partes = entrada.split(operador);
+      const izquierda = partes[0].replace(/\^/g, "**");
+      const derecha = partes[1].replace(/\^/g, "**");
+
+      const expresion = `(${izquierda}) - (${derecha})`;
+      const simplificada = nerdamer(expresion).expand().toString();
+
+      // Determinar si es cuadrática o lineal
+      const esCuadratica = simplificada.includes("x^2") || simplificada.includes("x**2");
+
+      try {
+        if (esCuadratica) {
+          const raices = nerdamer.solve(simplificada, 'x').text().split(',');
+          resultado.innerHTML = `
+            <p><strong>Paso 1:</strong> Restar ambos lados: ${expresion}</p>
+            <p><strong>Paso 2:</strong> Forma simplificada: ${simplificada}</p>
+            <p><strong>Raíces:</strong> x = ${raices.join(" y ")}</p>
+            <p><strong>Solución:</strong> Elige el intervalo correcto según el signo "${operador}"</p>
+          `;
+        } else {
+          const solucion = nerdamer.solve(simplificada, 'x').toString();
+          resultado.innerHTML = `
+            <p><strong>Paso 1:</strong> Restar ambos lados: ${expresion}</p>
+            <p><strong>Paso 2:</strong> Forma simplificada: ${simplificada}</p>
+            <p><strong>Solución:</strong> x ${operador} ${solucion}</p>
+          `;
+        }
+      } catch (e) {
+        resultado.innerHTML = "No se pudo resolver la desigualdad. Revisa la expresión.";
+      }
+    }
+  </script>
 </body>
 </html>
+
 
